@@ -20,7 +20,12 @@ namespace Word2vec.Tools
 
         readonly Dictionary<string, WordRepresentation> _dictioanary;
 
-        public Vocabulary(IEnumerable<WordRepresentation> representations, int vectorDimensionsCount)
+        /// <summary>
+        /// Number of entries the source file stated there would be. Should match Words.Length if file was read successfully.
+        /// </summary>
+        public readonly int StatedVocabularySize = 0;
+
+        public Vocabulary(IEnumerable<WordRepresentation> representations, int vectorDimensionsCount, int StatedVocabularySize = 0)
         {
             _dictioanary = new Dictionary<string, WordRepresentation>();
             this.VectorDimensionsCount = vectorDimensionsCount;
@@ -32,6 +37,7 @@ namespace Word2vec.Tools
                     _dictioanary.Add(representation.Word, representation);
             }
             Words = _dictioanary.Values.ToArray();
+            this.StatedVocabularySize = StatedVocabularySize;
         }
         /// <summary>
         /// Returns word2vec word vector if it exists.
@@ -85,7 +91,7 @@ namespace Word2vec.Tools
                 return new WordDistance[0];
 
             return Distance(this[word], count);
-         }
+        }
         /// <summary>
         /// If wordA is wordB, then wordC is...
         /// If all words exist - returns "count" of best fits for the result

@@ -57,7 +57,7 @@ namespace Word2vec.Tools
                        word: line.First(),
                        vector: vecs.Select(v => Single.Parse(v, enUsCulture)).ToArray()));
                 }
-                return new Vocabulary(vectors, vectorSize);
+                return new Vocabulary(vectors, vectorSize, vocabularySize);
             }
         }
 

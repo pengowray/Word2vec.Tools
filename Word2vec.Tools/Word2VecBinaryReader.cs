@@ -45,7 +45,7 @@ namespace Word2vec.Tools
                 // Give warning?
             }
 
-            return new Vocabulary(ans, vectorSize);
+            return new Vocabulary(ans, vectorSize, vocabularySize);
         }
 
         byte[] ReadHead(BinaryReader reader)
