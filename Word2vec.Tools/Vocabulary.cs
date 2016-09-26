@@ -65,7 +65,16 @@ namespace Word2vec.Tools
         {
             return representation.GetClosestFrom(Words.Where(v => v != representation), maxCount);
         }
-       
+
+        /// <summary>
+        /// returns "count" of closest words for target representation, but only from the first "onlyFromTop" entries in the vocab (which is typically sorted by occurrences in the corpus)
+        /// </summary>
+        public WordDistance[] Distance(Representation representation, int maxCount, int onlyFromTop)
+        {
+            return representation.GetClosestFrom(Words.Take(onlyFromTop).Where(v => v != representation), maxCount);
+        }
+
+
         /// <summary>
         /// if word exists - returns "count" of best fits for target word
         /// otherwise - returns empty array
