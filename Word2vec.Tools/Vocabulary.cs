@@ -108,10 +108,27 @@ namespace Word2vec.Tools
         /// If wordA is wordB, then wordC is...
         /// Returns "count" of best fits for the result
         /// </summary>
-        public WordDistance[] Analogy(Representation wordA, Representation wordB, Representation wordC, int count)
-        {
-           var cummulative =  wordB.Substract(wordA).Add(wordC);
-           return  cummulative.GetClosestFrom(Words.Where(t => t != wordA && t != wordB && t != wordC), count);
+        public WordDistance[] Analogy(Representation wordA, Representation wordB, Representation wordC, int count) {
+            var cummulative = wordB.Substract(wordA).Add(wordC);
+            return cummulative.GetClosestFrom(Words.Where(t => t != wordA && t != wordB && t != wordC), count);
         }
+        /*
+
+        //TODO: Make a reusable analogy-template. 
+        //Also remember ~50 neighbouring words of all invoked terms and don't include those
+        //Maybe also ignore terms that come up with the opposite analogy (black-white, white-black) ?
+        //Also check that vectors are normalized and if that's important
+
+        public AnalogyTemplate TemplatizeAnalogy(string wordA, string wordB, int excludeCount = 50) {
+            if (!this.ContainsWord(wordA) || !this.ContainsWord(wordB))
+                return null;
+
+            return AnalogyStructure(GetRepresentationFor(wordA), GetRepresentationFor(wordB), excludeCount);
+        }
+
+        public AnalogyTemplate TemplatizeAnalogy(Representation wordA, Representation wordB, int excludeCount = 50) {
+            var distance = wordB.Substract(wordA);
+        }
+        */
     }
 }
