@@ -1,4 +1,6 @@
 ﻿
+using MathNet.Numerics.LinearAlgebra;
+
 namespace Word2vec.Tools
 {
     /// <summary>
@@ -10,6 +12,11 @@ namespace Word2vec.Tools
         {
             this.Word = word;
         }
+
+        public WordRepresentation(string word, Vector<float> vector) : base(vector) {
+            this.Word = word;
+        }
+
         public readonly string Word;
        
     }

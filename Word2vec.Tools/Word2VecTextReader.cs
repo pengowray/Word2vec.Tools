@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathNet.Numerics.LinearAlgebra;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -11,7 +12,11 @@ namespace Word2vec.Tools
     /// </summary>
     public class Word2VecTextReader: IWord2VecReader
     {
-        public Vocabulary Read(System.IO.Stream inputStream)
+        public Word2VecTextReader(bool normalize = false, bool isSourceNormalized = false) : base(normalize, isSourceNormalized) 
+        {
+        }
+        
+        public override Vocabulary Read(Stream inputStream)
         {
             using (var strStream = new System.IO.StreamReader(inputStream))
             {
@@ -52,16 +57,24 @@ namespace Word2vec.Tools
                     var vecs = line.Skip(1).Take(vectorSize).ToArray();
                     if (vecs.Length != vectorSize)
                         throw new FormatException("word \"" + line.First() + "\" has wrong vector size of " + vecs.Length);
-                    
-                    vectors.Add(new WordRepresentation(
-                       word: line.First(),
-                       vector: vecs.Select(v => Single.Parse(v, enUsCulture)).ToArray()));
+
+                    if (normalize && !isSourceNormalized) {
+                        vectors.Add(new WordRepresentation(
+                           word: line.First(),
+                           vector: Vector<float>.Build.Dense(vecs.Select(v => Single.Parse(v, enUsCulture)).ToArray()).Normalize(2)));
+                    } else {
+                        vectors.Add(new WordRepresentation(
+                           word: line.First(),
+                           vector: vecs.Select(v => Single.Parse(v, enUsCulture)).ToArray())); // Normalize(2)
+                    }
                 }
-                return new Vocabulary(vectors, vectorSize, vocabularySize);
+                var vocab = new Vocabulary(vectors, vectorSize, vocabularySize);
+                vocab.isNormalized = isSourceNormalized || normalize;
+                return vocab;
             }
         }
 
-        public Vocabulary Read(string path)
+        public override Vocabulary Read(string path)
         {
             return Read(new FileStream(path, FileMode.Open));
         }

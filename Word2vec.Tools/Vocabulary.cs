@@ -18,7 +18,13 @@ namespace Word2vec.Tools
         /// </summary>
         public int VectorDimensionsCount { get; set; }
 
-        readonly Dictionary<string, WordRepresentation> _dictioanary;
+        /// <summary>
+        /// false if vectors are not normalized or unknown normalization
+        /// true to enable optimizations (NYI)
+        /// </summary>
+        public bool isNormalized;
+
+        readonly Dictionary<string, WordRepresentation> _dictionary;
 
         /// <summary>
         /// Number of entries the source file stated there would be. Should match Words.Length if file was read successfully.
@@ -27,16 +33,23 @@ namespace Word2vec.Tools
 
         public Vocabulary(IEnumerable<WordRepresentation> representations, int vectorDimensionsCount, int StatedVocabularySize = 0)
         {
-            _dictioanary = new Dictionary<string, WordRepresentation>();
+            _dictionary = new Dictionary<string, WordRepresentation>();
             this.VectorDimensionsCount = vectorDimensionsCount;
+
             foreach (var representation in representations)
             {
-                if (representation.NumericVector.Length != vectorDimensionsCount)
+                if (representation.NumericVector.Count() != vectorDimensionsCount)
                     throw new ArgumentException("representations.Vector.Length");
-                if (!string.IsNullOrWhiteSpace(representation.Word) && !_dictioanary.ContainsKey(representation.Word))
-                    _dictioanary.Add(representation.Word, representation);
+
+                if (string.IsNullOrWhiteSpace(representation.Word))
+                    continue; //TODO: track these error entries
+
+                if (_dictionary.ContainsKey(representation.Word))
+                    continue; //TODO: track these error entries
+
+                _dictionary.Add(representation.Word, representation);
             }
-            Words = _dictioanary.Values.ToArray();
+            Words = _dictionary.Values.ToArray();
             this.StatedVocabularySize = StatedVocabularySize;
         }
         /// <summary>
@@ -56,12 +69,12 @@ namespace Word2vec.Tools
         /// </summary>
         public WordRepresentation GetRepresentationFor(string word)
         {
-            return _dictioanary[word];
+            return _dictionary[word];
         }
         public WordRepresentation this[string word] { get { return GetRepresentationFor(word); } }
         public bool ContainsWord(string word)
         {
-            return _dictioanary.ContainsKey(word);
+            return _dictionary.ContainsKey(word);
         }
 
         /// <summary>
@@ -105,7 +118,7 @@ namespace Word2vec.Tools
                 return Analogy(GetRepresentationFor(wordA), GetRepresentationFor(wordB), GetRepresentationFor(wordC), count);
         }
         /// <summary>
-        /// If wordA is wordB, then wordC is...
+        /// wordA is to be wordB, as wordC is to...
         /// Returns "count" of best fits for the result
         /// </summary>
         public WordDistance[] Analogy(Representation wordA, Representation wordB, Representation wordC, int count) {

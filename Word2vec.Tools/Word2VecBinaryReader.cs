@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathNet.Numerics.LinearAlgebra;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -10,7 +11,11 @@ namespace Word2vec.Tools
     /// </summary>
     public class Word2VecBinaryReader : IWord2VecReader
     {
-        public Vocabulary Read(string path)
+        public Word2VecBinaryReader(bool normalize = false, bool isSourceNormalized = false) : base(normalize, isSourceNormalized)
+        {
+        }
+
+        public override Vocabulary Read(string path)
         {
             using (var inputStream = new FileStream(path, FileMode.Open))
             {
@@ -18,7 +23,7 @@ namespace Word2vec.Tools
             }
         }
         
-        public Vocabulary Read(Stream inputStream)
+        public override Vocabulary Read(Stream inputStream)
         {
             var readerSream = new BinaryReader(inputStream);
 
@@ -45,7 +50,9 @@ namespace Word2vec.Tools
                 // Give warning?
             }
 
-            return new Vocabulary(ans, vectorSize, vocabularySize);
+            var vocab = new Vocabulary(ans, vectorSize, vocabularySize);
+            vocab.isNormalized = isSourceNormalized || normalize;
+            return vocab;
         }
 
         byte[] ReadHead(BinaryReader reader)
@@ -92,7 +99,12 @@ namespace Word2vec.Tools
                 var vector = new float[vectorSize];
                 Buffer.BlockCopy(vectorBytes, 0, vector, 0, vectorSizeInByte);
 
-                return new WordRepresentation(word, vector);
+                if (normalize && !isSourceNormalized) {
+                    var normVec = Vector<float>.Build.Dense(vector).Normalize(2);
+                    return new WordRepresentation(word, normVec);
+                } else {
+                    return new WordRepresentation(word, vector);
+                }
 
             } catch (EndOfStreamException) {
                 return null;
