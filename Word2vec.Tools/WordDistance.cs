@@ -8,7 +8,7 @@ namespace Word2vec.Tools
             Representation = representation;
             Distance = distance;
         }
-        public  readonly WordRepresentation Representation;
+        public readonly WordRepresentation Representation;
         public readonly double Distance;
     }
 }

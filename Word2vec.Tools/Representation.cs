@@ -54,12 +54,29 @@ namespace Word2vec.Tools
             var ans = NumericVector + representation.NumericVector;
             return new Representation(ans);
         }
+        public virtual Representation Normalize() 
+        {
+            if (IsNormal())
+                return this;
+
+            var ans = NumericVector.Normalize(2);
+            return new Representation(ans);
+        }
+        public bool IsNormal() {
+            return Math.Abs(MetricLength - 1) < 0.0035; // accept even freebase_skipgram1000_en's normalization
+        }
         public WordDistance[] GetClosestFrom(IEnumerable<WordRepresentation> representations, int maxCount)
         {
             return representations.Select(GetCosineDistanceToWord)
-               .OrderByDescending(s => s.Distance)
+               .OrderBy(s => s.Distance)  //.OrderByDescending(s => s.Distance)
                .Take(maxCount)
                .ToArray();
         }
+
+        /// <returns>Return the nearest cluster if it's known/meaningful.</returns>
+        internal virtual Cluster NearestCluster() {
+            return null;
+        }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,6 +14,7 @@ namespace Word2vec.Tools
         /// All known words w2v representations
         /// </summary>
         public readonly WordRepresentation[] Words;
+
         /// <summary>
         /// w2v words vectors dimensions count
         /// </summary>
@@ -21,10 +23,14 @@ namespace Word2vec.Tools
         /// <summary>
         /// false if vectors are not normalized or unknown normalization
         /// true to enable optimizations (NYI)
+        /// true to cause centroids to be normalized too
         /// </summary>
         public bool isNormalized;
 
         readonly Dictionary<string, WordRepresentation> _dictionary;
+
+        public Cluster[] Clusters;
+        //public Dictionary<int, CentroidRepresentation> _clusterDictionary; // hopefully redundant
 
         /// <summary>
         /// Number of entries the source file stated there would be. Should match Words.Length if file was read successfully.
@@ -78,33 +84,64 @@ namespace Word2vec.Tools
         }
 
         /// <summary>
-        /// returns "count" of closest words for target representation
+        /// if word exists - returns "count" of best fits for target word
+        /// otherwise - returns empty array
         /// </summary>
-        public WordDistance[] Distance(Representation representation, int maxCount)
+        public WordDistance[] Distance(string word, int count, int onlyFromTop = int.MaxValue)
         {
-            return representation.GetClosestFrom(Words.Where(v => v != representation), maxCount);
+            if (!this.ContainsWord(word))
+                return new WordDistance[0];
+
+            return Distance(this[word], count, onlyFromTop);
         }
 
         /// <summary>
         /// returns "count" of closest words for target representation, but only from the first "onlyFromTop" entries in the vocab (which is typically sorted by occurrences in the corpus)
         /// </summary>
-        public WordDistance[] Distance(Representation representation, int maxCount, int onlyFromTop)
-        {
+        public WordDistance[] Distance(Representation representation, int maxCount, int onlyFromTop = int.MaxValue) {
+            if (Clusters != null) { 
+                var cluster = NearestCluster(representation); //representation.cluster;
+
+                // other possible clusters
+                double distanceFromCentroid = cluster.Centroid.GetCosineDistanceTo(representation);
+
+                //double searchDistance = distanceFromCentroid * 2; // Centroid<(---D---)--------------->Radius // meh
+                //List<WordDistance> wordsFound = new List<WordDistance>();;
+                IEnumerable<WordDistance> wordsFound = Enumerable.Empty<WordDistance>();
+
+                //double searchDistance = distanceFromCentroid + cluster.Radius; // use this if we're storing cluster-cluster distances
+                var nearest = new Queue<ClusterDistance>(cluster.Nearest);
+                bool done = false;
+                while (!done) {
+                    //if (searchDistance + cl.Radius + cl.Centroid.GetCosineDistanceTo()) { }
+                    var newCandidateWords = nearest.Dequeue();
+                    var newDistances = newCandidateWords.Cluster.Words.Where(w => w.Rank < onlyFromTop).Select(w => representation.GetCosineDistanceToWord(w));
+                    //wordsFound.AddRange(newDistances);
+                    wordsFound = wordsFound.Concat(newDistances);
+
+                    if (wordsFound.Count() >= maxCount) {
+                        wordsFound = wordsFound.OrderBy(w => w.Distance).Take(maxCount);
+                        //var fartherestFound = wordsFound[maxCount - 1].Distance;
+                        //var fartherestFound = wordsFound.Skip(maxCount - 1).First().Distance;
+                        var fartherestFound = wordsFound.Last().Distance;
+
+                        if (nearest.Count() == 0 || nearest.Peek().MinDistance < fartherestFound) {
+                            done = true;
+                            return wordsFound.Take(maxCount).ToArray();
+                        }
+                    }
+                }
+
+                // failed.. not enough words found
+                wordsFound = wordsFound.OrderBy(w => w.Distance).Take(maxCount);
+                return wordsFound.ToArray();
+            }
+
+            //return Distance((Representation)representation, maxCount, onlyFromTop);
             return representation.GetClosestFrom(Words.Take(onlyFromTop).Where(v => v != representation), maxCount);
         }
 
 
-        /// <summary>
-        /// if word exists - returns "count" of best fits for target word
-        /// otherwise - returns empty array
-        /// </summary>
-        public WordDistance[] Distance(string word, int count)
-        {
-            if (!this.ContainsWord(word))
-                return new WordDistance[0];
-
-            return Distance(this[word], count);
-        }
         /// <summary>
         /// If wordA is wordB, then wordC is...
         /// If all words exist - returns "count" of best fits for the result
@@ -123,25 +160,138 @@ namespace Word2vec.Tools
         /// </summary>
         public WordDistance[] Analogy(Representation wordA, Representation wordB, Representation wordC, int count) {
             var cummulative = wordB.Substract(wordA).Add(wordC);
-            return cummulative.GetClosestFrom(Words.Where(t => t != wordA && t != wordB && t != wordC), count);
+            //return cummulative.GetClosestFrom(Words.Where(t => t != wordA && t != wordB && t != wordC), count);
+
+            //TODO: don't bother filtering. leave that for the client
+            var dist = Distance(cummulative, count + 3);
+            return dist.Where(t => t.Representation != wordA && t.Representation != wordB && t.Representation != wordC).Take(count).ToArray();
+            //return Distance(cummulative, count);
         }
-        /*
 
-        //TODO: Make a reusable analogy-template. 
-        //Also remember ~50 neighbouring words of all invoked terms and don't include those
-        //Maybe also ignore terms that come up with the opposite analogy (black-white, white-black) ?
-        //Also check that vectors are normalized and if that's important
-
-        public AnalogyTemplate TemplatizeAnalogy(string wordA, string wordB, int excludeCount = 50) {
-            if (!this.ContainsWord(wordA) || !this.ContainsWord(wordB))
+        public Cluster NearestCluster(Representation rep) {
+            if (Clusters == null)
                 return null;
 
-            return AnalogyStructure(GetRepresentationFor(wordA), GetRepresentationFor(wordB), excludeCount);
+            var nearest = rep.NearestCluster();
+            if (nearest != null && nearest.Parent == this)
+                return nearest;
+            
+            return DoNearestCluster(rep);
         }
 
-        public AnalogyTemplate TemplatizeAnalogy(Representation wordA, Representation wordB, int excludeCount = 50) {
-            var distance = wordB.Substract(wordA);
+        public Cluster NearestCluster(WordRepresentation word) {
+            if (Clusters == null)
+                return null;
+
+            if (word.cluster != null && word.cluster.Parent == this)
+                return word.cluster;
+
+            return DoNearestCluster(word);
         }
-        */
+
+        protected Cluster DoNearestCluster(Representation word) {
+            return Clusters.OrderBy(c => c.Centroid.GetCosineDistanceTo(word)).First();
+        }
+
+
+
+        public void InitializeClusters() {
+
+            int count = Words.Count();
+
+            int k = (int)Math.Sqrt(count / 2);
+
+            var rand = new Random(); // TODO: configurable
+
+            // pick k random items:
+            HashSet<int> randomCentIndexes = new HashSet<int>();
+            while (randomCentIndexes.Count < k) {
+                randomCentIndexes.Add(rand.Next(count));
+            }
+
+            //Centroids = new WordRepresentation[]
+            //_centroidDictionary = new Dictionary<int, CentroidRepresentation>();
+            List<Cluster> clusterList = new List<Cluster>();
+            int cIndex = 0;
+            foreach (var index in randomCentIndexes.OrderBy(i => i)) {
+                var centroid = new CentroidRepresentation(cIndex, Words[index].NumericVector);
+                //_centroidDictionary[cIndex] = centroid;
+                clusterList.Add(new Cluster(this, centroid));
+                cIndex++;
+            }
+
+            //Centroids = _centroidDictionary.Values.ToArray();
+            Clusters = clusterList.ToArray();
+            CalculateCentroidDistances();
+        }
+
+        public void KmeansIterateClusters() {
+            //TODO
+            
+            // average words distances
+
+            // move clusters
+
+            CalculateCentroidDistances();
+        }
+
+        public void CalculateCentroidDistances() {
+
+            // set WordRank property of each word (TODO: should be done in Word2VecBinaryReader and Word2VecTextReader)
+            int rank = 0;
+            foreach (var word in Words) {
+                word.Rank = rank;
+                rank++;
+            }
+
+            // set Cluster property of each Word
+            foreach (var word in Words) {
+                // find closest cluster
+                var closestCluster = DoNearestCluster(word); // use "Do" version of function to avoid optimization (which would skip the calculation)
+                //int closestClusterIndex = Centroids.OrderBy(c => c.GetCosineDistanceToWord(word)).First().Index; // was CalcClosestCentroid(word);
+                //_WordClusterMap[word.Word] = closestCluster;
+                word.cluster = closestCluster;
+            }
+            
+            // set Words and Radius of each Cluster
+            foreach (var cluster in Clusters) {
+                //_ClusterWords[centroid.Index] = _WordClusterMap.Where(x => x.Value == centroid.Index).Select(x => x.Key).ToArray(); // just words
+                cluster.Words = Words.Where(w => w.cluster == cluster).ToArray();
+                cluster.Radius = cluster.Words.Max(w => w.GetCosineDistanceTo(cluster.Centroid));
+            }
+
+            // set nearest clusters
+            foreach (var fromCluster in Clusters) {
+                //Clusters[] Nearest = Clusters.OrderBy(c => cluster.Centroid.GetCosineDistanceTo(c.Centroid)).ToArray();
+                fromCluster.Nearest = Clusters.Select(toCluster => fromCluster.GetCosineDistanceToCluster(toCluster)).OrderBy(dis => dis.MinDistance).ToArray();
+            }
+
+            // create a search tree so all clusters can efficiently find their nearest words
+            //foreach (var cluster in Clusters) { 
+                // clusters the next closest word could possibly be found in:
+                //var candidates = cluster.Nearest.TakeWhile(c => c.Nearest)
+
+            //}
+
+        }
+
+        /*
+
+//TODO: Make a reusable analogy-template. 
+//Also remember ~50 neighbouring words of all invoked terms and don't include those
+//Maybe also ignore terms that come up with the opposite analogy (black-white, white-black) ?
+//Also check that vectors are normalized and if that's important
+
+public AnalogyTemplate TemplatizeAnalogy(string wordA, string wordB, int excludeCount = 50) {
+   if (!this.ContainsWord(wordA) || !this.ContainsWord(wordB))
+       return null;
+
+   return AnalogyStructure(GetRepresentationFor(wordA), GetRepresentationFor(wordB), excludeCount);
+}
+
+public AnalogyTemplate TemplatizeAnalogy(Representation wordA, Representation wordB, int excludeCount = 50) {
+   var distance = wordB.Substract(wordA);
+}
+*/
     }
 }

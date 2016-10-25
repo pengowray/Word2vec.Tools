@@ -31,7 +31,7 @@ namespace Word2vec.Tools
             var strHeader = Encoding.UTF8.GetString(ReadHead(readerSream));
             var split = strHeader.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
             if (split.Length < 2)
-                throw new FormatException("Header of binary must contain two ascii integers: vocabularySize vectorSize");
+                throw new FormatException("Header of binary must contain two ascii integers: vocabularySize and vectorSize");
             int vocabularySize = int.Parse(split[0]);
             int vectorSize = int.Parse(split[1]);
 
