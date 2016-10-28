@@ -37,6 +37,18 @@ namespace Word2vec.Tools
             return Distance.Cosine(NumericVector.ToArray(), representation.NumericVector.ToArray());
         }
 
+        // was: GetAngularCosineDistanceTo
+        public double GetSimpleAngleTo(Representation representation) {
+            //return Math.Acos(1 - GetCosineDistanceTo(representation)); // divide by pi?
+            
+            var result = Math.Acos(NumericVector.DotProduct(representation.NumericVector));
+            return result;
+        }
+
+        public WordDistance GetSimpleAngleToWord(WordRepresentation representation) {
+            return new WordDistance(representation, GetSimpleAngleTo(representation));
+        }
+
         public Representation Substract(Representation representation)
         {
             var ans = NumericVector - representation.NumericVector;
@@ -68,6 +80,15 @@ namespace Word2vec.Tools
         public WordDistance[] GetClosestFrom(IEnumerable<WordRepresentation> representations, int maxCount)
         {
             return representations.Select(GetCosineDistanceToWord)
+               .OrderBy(s => s.Distance)  //.OrderByDescending(s => s.Distance)
+               .Take(maxCount)
+               .ToArray();
+        }
+
+        
+        public WordDistance[] GetSimpleAngleClosestFrom(IEnumerable<WordRepresentation> representations, int maxCount) {
+            // temporary test function
+            return representations.Select(GetSimpleAngleToWord)
                .OrderBy(s => s.Distance)  //.OrderByDescending(s => s.Distance)
                .Take(maxCount)
                .ToArray();

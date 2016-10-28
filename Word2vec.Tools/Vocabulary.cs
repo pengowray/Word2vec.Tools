@@ -29,7 +29,7 @@ namespace Word2vec.Tools
 
         readonly Dictionary<string, WordRepresentation> _dictionary;
 
-        public Cluster[] Clusters;
+        public Cluster[] Clusters = null;
         //public Dictionary<int, CentroidRepresentation> _clusterDictionary; // hopefully redundant
 
         /// <summary>
@@ -95,38 +95,49 @@ namespace Word2vec.Tools
             return Distance(this[word], count, onlyFromTop);
         }
 
+        public WordDistance[] SimpleAngleDistance(Representation representation, int maxCount, int onlyFromTop = int.MaxValue) {
+            return representation.GetSimpleAngleClosestFrom(Words.Take(onlyFromTop).Where(v => v != representation), maxCount);
+        }
         /// <summary>
         /// returns "count" of closest words for target representation, but only from the first "onlyFromTop" entries in the vocab (which is typically sorted by occurrences in the corpus)
         /// </summary>
         public WordDistance[] Distance(Representation representation, int maxCount, int onlyFromTop = int.MaxValue) {
             if (Clusters != null) { 
-                var cluster = NearestCluster(representation); //representation.cluster;
+                var homeCluster = NearestCluster(representation); //representation.cluster;
 
                 // other possible clusters
-                double distanceFromCentroid = cluster.Centroid.GetCosineDistanceTo(representation);
+                //double distanceFromCentroid = homeCluster.Centroid.GetAngularCosineDistanceTo(representation); //.GetCosineDistanceTo(representation);
 
                 //double searchDistance = distanceFromCentroid * 2; // Centroid<(---D---)--------------->Radius // meh
                 //List<WordDistance> wordsFound = new List<WordDistance>();;
                 IEnumerable<WordDistance> wordsFound = Enumerable.Empty<WordDistance>();
 
                 //double searchDistance = distanceFromCentroid + cluster.Radius; // use this if we're storing cluster-cluster distances
-                var nearest = new Queue<ClusterDistance>(cluster.Nearest);
+
+                //var nearest = new Queue<ClusterDistance>(homeCluster.Nearest); // cluster-to-cluster.. often all results < 0 min distance
+                var nearest = new Queue<ClusterDistance>(MinClusterDistaces(representation));
+
                 bool done = false;
                 while (!done) {
                     //if (searchDistance + cl.Radius + cl.Centroid.GetCosineDistanceTo()) { }
                     var newCandidateWords = nearest.Dequeue();
-                    var newDistances = newCandidateWords.Cluster.Words.Where(w => w.Rank < onlyFromTop).Select(w => representation.GetCosineDistanceToWord(w));
+                    var newDistances = newCandidateWords.Cluster.Words.Where(w => w.Rank < onlyFromTop).Select(w => representation.GetCosineDistanceToWord(w)); // .Select(w => representation.GetAngularCosineDistanceToWord(w));
                     //wordsFound.AddRange(newDistances);
                     wordsFound = wordsFound.Concat(newDistances);
 
                     if (wordsFound.Count() >= maxCount) {
-                        wordsFound = wordsFound.OrderBy(w => w.Distance).Take(maxCount);
+                        wordsFound = wordsFound.OrderBy(w => w.Distance).Take(maxCount); // TODO: don't sort every time.. just re-use last value if possible.
                         //var fartherestFound = wordsFound[maxCount - 1].Distance;
                         //var fartherestFound = wordsFound.Skip(maxCount - 1).First().Distance;
-                        var fartherestFound = wordsFound.Last().Distance;
+                        var fartherestFound = wordsFound.Last(); // .Distance;
+                        var fartherestDistanceFromHomeCluster = representation.GetSimpleAngleTo(fartherestFound.Representation);
 
-                        if (nearest.Count() == 0 || nearest.Peek().MinDistance < fartherestFound) {
+                        //if (nearest.Count() <= 0 || (nearest.Peek().MinDistance > 0 && nearest.Peek().MinDistance < fartherestDistanceFromHomeCluster)) {
+                        if (nearest.Count() == 0 || fartherestDistanceFromHomeCluster < nearest.Peek().MinDistance) {
                             done = true;
+                            if (nearest.Count() > 0) {
+                                Console.WriteLine("DEBUG: final cluster: {0}. fartherestDistanceFromHomeCluster:{1} < {2}", newCandidateWords.Cluster.Index, fartherestDistanceFromHomeCluster, nearest.Peek().MinDistance);
+                            }
                             return wordsFound.Take(maxCount).ToArray();
                         }
                     }
@@ -139,6 +150,10 @@ namespace Word2vec.Tools
 
             //return Distance((Representation)representation, maxCount, onlyFromTop);
             return representation.GetClosestFrom(Words.Take(onlyFromTop).Where(v => v != representation), maxCount);
+        }
+
+        public IEnumerable<ClusterDistance> MinClusterDistaces(Representation representation) {
+            return Clusters.Select(toCluster => new ClusterDistance(representation, toCluster, representation.GetSimpleAngleTo(toCluster.Centroid))).OrderBy(dis => dis.MinDistance);
         }
 
 
@@ -216,7 +231,7 @@ namespace Word2vec.Tools
             foreach (var index in randomCentIndexes.OrderBy(i => i)) {
                 var centroid = new CentroidRepresentation(cIndex, Words[index].NumericVector);
                 //_centroidDictionary[cIndex] = centroid;
-                clusterList.Add(new Cluster(this, centroid));
+                clusterList.Add(new Cluster(this, centroid, cIndex));
                 cIndex++;
             }
 
@@ -257,14 +272,14 @@ namespace Word2vec.Tools
             foreach (var cluster in Clusters) {
                 //_ClusterWords[centroid.Index] = _WordClusterMap.Where(x => x.Value == centroid.Index).Select(x => x.Key).ToArray(); // just words
                 cluster.Words = Words.Where(w => w.cluster == cluster).ToArray();
-                cluster.Radius = cluster.Words.Max(w => w.GetCosineDistanceTo(cluster.Centroid));
+                cluster.Radius = cluster.Words.Max(w => w.GetSimpleAngleTo(cluster.Centroid));
             }
 
             // set nearest clusters
-            foreach (var fromCluster in Clusters) {
-                //Clusters[] Nearest = Clusters.OrderBy(c => cluster.Centroid.GetCosineDistanceTo(c.Centroid)).ToArray();
-                fromCluster.Nearest = Clusters.Select(toCluster => fromCluster.GetCosineDistanceToCluster(toCluster)).OrderBy(dis => dis.MinDistance).ToArray();
-            }
+            //foreach (var fromCluster in Clusters) {
+                ////Clusters[] Nearest = Clusters.OrderBy(c => cluster.Centroid.GetCosineDistanceTo(c.Centroid)).ToArray();
+                //fromCluster.Nearest = Clusters.Select(toCluster => fromCluster.GetSimpleAngleTo(toCluster)).OrderBy(dis => dis.MinDistance).ToArray();
+            //}
 
             // create a search tree so all clusters can efficiently find their nearest words
             //foreach (var cluster in Clusters) { 

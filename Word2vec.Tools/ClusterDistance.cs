@@ -10,6 +10,20 @@ namespace Word2vec.Tools
             //Distance = distance;
             MinDistance = distance - from.Radius - toCluster.Radius;
         }
+
+        public ClusterDistance(Representation from, Cluster toCluster, double distance) {
+            //From = from;
+            Cluster = toCluster;
+            //Distance = distance;
+            MinDistance = distance - toCluster.Radius;
+
+            //var nearestCluster = from.NearestCluster();
+            //if (nearestCluster != null) {
+              //  var clusterDist = nearestCluster.Centroid.GetSimpleAngleTo(from);
+              //  MinDistance = distance - toCluster.Radius;
+            //}
+        }
+
         //public readonly Cluster From; // add this back if needed
         public readonly Cluster Cluster;
         //public readonly double Distance; // add this back if needed
