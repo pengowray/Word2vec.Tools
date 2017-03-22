@@ -102,53 +102,6 @@ namespace Word2vec.Tools
         /// returns "count" of closest words for target representation, but only from the first "onlyFromTop" entries in the vocab (which is typically sorted by occurrences in the corpus)
         /// </summary>
         public WordDistance[] Distance(Representation representation, int maxCount, int onlyFromTop = int.MaxValue) {
-            if (Clusters != null) { 
-                var homeCluster = NearestCluster(representation); //representation.cluster;
-
-                // other possible clusters
-                //double distanceFromCentroid = homeCluster.Centroid.GetAngularCosineDistanceTo(representation); //.GetCosineDistanceTo(representation);
-
-                //double searchDistance = distanceFromCentroid * 2; // Centroid<(---D---)--------------->Radius // meh
-                //List<WordDistance> wordsFound = new List<WordDistance>();;
-                IEnumerable<WordDistance> wordsFound = Enumerable.Empty<WordDistance>();
-
-                //double searchDistance = distanceFromCentroid + cluster.Radius; // use this if we're storing cluster-cluster distances
-
-                //var nearest = new Queue<ClusterDistance>(homeCluster.Nearest); // cluster-to-cluster.. often all results < 0 min distance
-                var nearest = new Queue<ClusterDistance>(MinClusterDistaces(representation));
-
-                bool done = false;
-                while (!done) {
-                    //if (searchDistance + cl.Radius + cl.Centroid.GetCosineDistanceTo()) { }
-                    var newCandidateWords = nearest.Dequeue();
-                    var newDistances = newCandidateWords.Cluster.Words.Where(w => w.Rank < onlyFromTop).Select(w => representation.GetCosineDistanceToWord(w)); // .Select(w => representation.GetAngularCosineDistanceToWord(w));
-                    //wordsFound.AddRange(newDistances);
-                    wordsFound = wordsFound.Concat(newDistances);
-
-                    if (wordsFound.Count() >= maxCount) {
-                        wordsFound = wordsFound.OrderBy(w => w.Distance).Take(maxCount); // TODO: don't sort every time.. just re-use last value if possible.
-                        //var fartherestFound = wordsFound[maxCount - 1].Distance;
-                        //var fartherestFound = wordsFound.Skip(maxCount - 1).First().Distance;
-                        var fartherestFound = wordsFound.Last(); // .Distance;
-                        var fartherestDistanceFromHomeCluster = representation.GetSimpleAngleTo(fartherestFound.Representation);
-
-                        //if (nearest.Count() <= 0 || (nearest.Peek().MinDistance > 0 && nearest.Peek().MinDistance < fartherestDistanceFromHomeCluster)) {
-                        if (nearest.Count() == 0 || fartherestDistanceFromHomeCluster < nearest.Peek().MinDistance) {
-                            done = true;
-                            if (nearest.Count() > 0) {
-                                Console.WriteLine("DEBUG: final cluster: {0}. fartherestDistanceFromHomeCluster:{1} < {2}", newCandidateWords.Cluster.Index, fartherestDistanceFromHomeCluster, nearest.Peek().MinDistance);
-                            }
-                            return wordsFound.Take(maxCount).ToArray();
-                        }
-                    }
-                }
-
-                // failed.. not enough words found
-                wordsFound = wordsFound.OrderBy(w => w.Distance).Take(maxCount);
-                return wordsFound.ToArray();
-            }
-
-            //return Distance((Representation)representation, maxCount, onlyFromTop);
             return representation.GetClosestFrom(Words.Take(onlyFromTop).Where(v => v != representation), maxCount);
         }
 
