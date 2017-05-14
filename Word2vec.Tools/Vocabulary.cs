@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Word2vec.Tools
 {
@@ -241,6 +243,32 @@ namespace Word2vec.Tools
 
             //}
 
+        }
+
+        //untested
+        public void WriteTextFile(string filename) {
+            using (StreamWriter writer = new StreamWriter(filename, false, Encoding.UTF8)) {
+                // header
+                int vocabularySize = Words.Length;
+                int vectorSize = VectorDimensionsCount;
+                if (vocabularySize > 0 && vectorSize <= 0) {
+                    vectorSize = Words[0].NumericVector.Count();
+                }
+                writer.WriteLine("{0} {1}", vocabularySize, vectorSize);
+
+
+                foreach (var word in Words) {
+                    StringBuilder vecString = new StringBuilder();
+                    foreach (var v in word.NumericVector) {
+                        vecString.Append(v.ToString("N6")); // 6 d.p.
+                        vecString.Append(" ");
+                    }
+
+                    writer.WriteLine("{0} {1}",
+                        word.Word,
+                        vecString);
+                }
+            }
         }
 
         /*

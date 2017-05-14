@@ -34,6 +34,10 @@
       <HintPath>..\packages\MathNet.Numerics.3.13.1\lib\net40\MathNet.Numerics.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Priority Queue, Version=4.1.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\latin2-more\beastierank\src\packages\OptimizedPriorityQueue.4.1.1\lib\net45\Priority Queue.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -43,10 +47,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnnoyIndex.cs" />
+    <Compile Include="GensimBridge\AnnoyIndexerViaDockerGensim.cs" />
     <Compile Include="Cluster.cs" />
+    <Compile Include="GensimBridge\GensimBridge.cs" />
     <Compile Include="IWord2VecReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <None Include="GensimBridge\GensimIndexer.py" />
     <Compile Include="Representation.cs" />
+    <Compile Include="ANNIndexTest.cs" />
     <Compile Include="Vocabulary.cs" />
     <Compile Include="Word2VecBinaryReader.cs" />
     <Compile Include="Word2VecTextReader.cs" />
@@ -57,6 +66,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Test\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,3 +1,12 @@
+# This is an unstable fork #
+
+You probably want to use the original:
+
+https://github.com/tmteam/Word2vec.Tools
+
+But feel free to cherry pick changes from this repo.
+
+
 # Word2vec.Tools#
 .Net Implementation for those who wants to use google word2vec tools in theirs .net solutions
 

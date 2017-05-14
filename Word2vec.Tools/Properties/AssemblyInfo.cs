@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("word2vec.tools")]
-[assembly: AssemblyDescription(".Net Implementation for those who wants to use google word2vec tools in theirs .net solutions")]
+[assembly: AssemblyDescription(".Net Implementation for those who wants to use google word2vec tools in their .net solutions")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("rspk")]
 [assembly: AssemblyProduct("word2vec")]
