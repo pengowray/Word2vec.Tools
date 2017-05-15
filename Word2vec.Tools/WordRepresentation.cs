@@ -27,13 +27,8 @@ namespace Word2vec.Tools
             return new WordRepresentation(Word, ans);
         }
 
-        internal override Cluster NearestCluster() {
-            return cluster;
-        }
-
         public readonly string Word;
 
-        public Cluster cluster;
         public int Rank = -1; // order it appears in the Word2Vec file, which is generally the frequency it occurs
     }
 }

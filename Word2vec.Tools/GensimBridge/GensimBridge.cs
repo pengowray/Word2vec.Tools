@@ -21,7 +21,7 @@ namespace Word2vec.Tools.GensimBridge {
             System.Console.WriteLine(args.Length);
         }
 
-        public void SendData(Vocabulary vocab) {
+        public void SendData(IVocabulary vocab) {
             string domain = string.Format("{0}:{1}...", hostname, port);
             System.Console.WriteLine("Connecting to {0}:{1}...", hostname, port);
             var encoder = System.Text.Encoding.Unicode;

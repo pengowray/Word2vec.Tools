@@ -48,14 +48,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnnoyIndex.cs" />
+    <Compile Include="FastVocabulary.cs" />
     <Compile Include="GensimBridge\AnnoyIndexerViaDockerGensim.cs" />
     <Compile Include="Cluster.cs" />
     <Compile Include="GensimBridge\GensimBridge.cs" />
+    <Compile Include="IVocabulary.cs" />
     <Compile Include="IWord2VecReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="GensimBridge\GensimIndexer.py" />
     <Compile Include="Representation.cs" />
-    <Compile Include="ANNIndexTest.cs" />
     <Compile Include="Vocabulary.cs" />
     <Compile Include="Word2VecBinaryReader.cs" />
     <Compile Include="Word2VecTextReader.cs" />

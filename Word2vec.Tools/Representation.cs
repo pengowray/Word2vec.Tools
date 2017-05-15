@@ -12,7 +12,7 @@ namespace Word2vec.Tools
     /// </summary>
     public class Representation
     {
-        public Representation(Vector<float> NumericVector) 
+        public Representation(Vector<float> NumericVector) // todo: go back to using a float[]
         {
             this.NumericVector = NumericVector;
             MetricLength = NumericVector.L2Norm(); // Euclidean norm
@@ -77,7 +77,7 @@ namespace Word2vec.Tools
         public bool IsNormal() {
             return Math.Abs(MetricLength - 1) < 0.0035; // accept even freebase_skipgram1000_en's normalization
         }
-        public WordDistance[] GetClosestFrom(IEnumerable<WordRepresentation> representations, int maxCount)
+        public WordDistance[] NearestFrom(IEnumerable<WordRepresentation> representations, int maxCount)
         {
             return representations.Select(GetCosineDistanceToWord)
                .OrderBy(s => s.Distance)  //.OrderByDescending(s => s.Distance)
@@ -86,7 +86,7 @@ namespace Word2vec.Tools
         }
 
         
-        public WordDistance[] GetSimpleAngleClosestFrom(IEnumerable<WordRepresentation> representations, int maxCount) {
+        public WordDistance[] GetSimpleAngleNearestFrom(IEnumerable<WordRepresentation> representations, int maxCount) {
             // temporary test function
             return representations.Select(GetSimpleAngleToWord)
                .OrderBy(s => s.Distance)  //.OrderByDescending(s => s.Distance)

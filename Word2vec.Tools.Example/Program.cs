@@ -34,7 +34,7 @@ namespace Word2vec.Tools.Example
             #region distance
             
             Console.WriteLine("top "+count+" closest to \""+ boy+"\" words:");
-            var closest = vocabulary.Distance(boy, count);
+            var closest = vocabulary.Nearest(boy, count);
 
             /* Is simmilar to:
             * var closest = vocabulary[boy].GetClosestFrom(vocabulary.Words.Where(w => w != vocabulary[boy]), count);
@@ -57,7 +57,7 @@ namespace Word2vec.Tools.Example
             #region addition
             Console.WriteLine("\""+girl+"\" + \""+boy+"\" = ...");
             var additionRepresentation = vocabulary[girl].Add(vocabulary[boy]);
-            var closestAdditions = vocabulary.Distance(additionRepresentation, count);
+            var closestAdditions = vocabulary.Nearest(additionRepresentation, count);
              foreach (var neightboor in closestAdditions)
                  Console.WriteLine(neightboor.Representation.Word + "\t\t" + neightboor.Distance);
             #endregion
@@ -67,7 +67,7 @@ namespace Word2vec.Tools.Example
             #region subtraction
 			 Console.WriteLine("\""+girl+"\" - \""+boy+"\" = ...");
              var subtractionRepresentation = vocabulary[girl].Substract(vocabulary[boy]);
-             var closestSubtractions = vocabulary.Distance(subtractionRepresentation, count);
+             var closestSubtractions = vocabulary.Nearest(subtractionRepresentation, count);
              foreach (var neightboor in closestSubtractions)
                  Console.WriteLine(neightboor.Representation.Word + "\t\t" + neightboor.Distance);
             #endregion

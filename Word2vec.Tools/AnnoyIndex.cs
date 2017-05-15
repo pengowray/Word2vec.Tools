@@ -11,6 +11,11 @@ namespace Word2vec.Tools {
     // port of https://github.com/spotify/annoy-java
     // specifically: https://github.com/spotify/annoy-java/blob/master/src/main/java/com/spotify/annoy/ANNIndex.java
 
+    // see also: https://github.com/spotify/annoy
+    // specifically: https://github.com/spotify/annoy/blob/master/src/annoylib.h
+    // note: new AnnoyIndex<int32_t, float, Angular or Euclidean, Kiss64Random>(self->f); // int32_t is signed
+    // template<typename S, typename T, typename Distance, typename Random> class AnnoyIndex
+
     public enum IndexType {
         ANGULAR, EUCLIDEAN, NONE
     }
@@ -30,7 +35,7 @@ namespace Word2vec.Tools {
 
         private readonly int INT_SIZE = 4;
         private readonly int FLOAT_SIZE = 4;
-        private MemoryMappedFile memoryMappedFile; // RandomAccessFile
+        //private MemoryMappedFile memoryMappedFile; // RandomAccessFile
 
         /**
          * Construct and load an Annoy index of a specific type (euclidean / angular).
@@ -73,9 +78,7 @@ namespace Word2vec.Tools {
             */
             int m = -1;
             for (long i = fileSize - NODE_SIZE; i >= 0; i -= NODE_SIZE) {
-                annBuf.BaseStream.Position = i;
-                int k = annBuf.ReadInt32(); // [?? should this be unsigned?]
-                //int k = annBuf.getInt(i);  // node[i].n_descendants
+                int k = GetInt(i); // node[i].n_descendants
 
                 if (m == -1 || k == m) {
                     roots.Add(i);
@@ -87,13 +90,24 @@ namespace Word2vec.Tools {
         }
 
         public int GetInt(long offset) {
-            annBuf.BaseStream.Position = offset;
-            return annBuf.ReadInt32();
+            lock (this) {
+                annBuf.BaseStream.Position = offset;
+                return annBuf.ReadInt32();
+            }
+        }
+
+        public uint GetUInt(long offset) {
+            lock (this) {
+                annBuf.BaseStream.Position = offset;
+                return annBuf.ReadUInt32();
+            }
         }
 
         public float GetFloat(long offset) {
-            annBuf.BaseStream.Position = offset;
-            return annBuf.ReadSingle();
+            lock (this) {
+                annBuf.BaseStream.Position = offset;
+                return annBuf.ReadSingle();
+            }
         }
 
         //@Override
@@ -166,9 +180,13 @@ namespace Word2vec.Tools {
             return true;
         }
 
+        //public Tuple<int, float>[] getNearestDistances(float[] queryVector, int nResults) {
+        //    return null; //TODO
+        //}
+
         //@Override
         public int[] getNearest(float[] queryVector, int nResults) {
-            var reverseComparer = Comparer<float>.Create((x,y) => y.CompareTo(x));
+            var reverseComparer = Comparer<float>.Create((x,y) => y.CompareTo(x)); // bigger to top
 
             SimplePriorityQueue <long> pq = new SimplePriorityQueue<long>(reverseComparer);
             // PriorityQueue size: roots.Count() * FLOAT_SIZE);
@@ -181,8 +199,11 @@ namespace Word2vec.Tools {
             HashSet<long> nearestNeighbors = new HashSet<long>();
             while (nearestNeighbors.Count() < roots.Count() * nResults && pq.Count != 0) {
                 //PQEntry top = pq.poll();
-                long top = pq.Dequeue();
-                long topNodeOffset = top; //.nodeOffset;
+                long topNodeOffset = pq.Dequeue(); //  top; //.nodeOffset;
+                if (topNodeOffset < 0) {
+                    Console.WriteLine("bad offset:" + topNodeOffset);
+                    continue;
+                }
                 int nDescendants = GetInt(topNodeOffset);
                 float[] v = getNodeVector(topNodeOffset);
                 if (nDescendants == 1) {  // n_descendants
@@ -207,14 +228,15 @@ namespace Word2vec.Tools {
                             cosineMargin(v, queryVector) :
                             euclideanMargin(v, queryVector, getNodeBias(topNodeOffset));
                     long childrenMemOffset = topNodeOffset + INDEX_TYPE_OFFSET;
-                    long lChild = NODE_SIZE * GetInt(childrenMemOffset);
-                    long rChild = NODE_SIZE * GetInt(childrenMemOffset + 4);
+                    long lChild = NODE_SIZE * (long)GetUInt(childrenMemOffset);
+                    long rChild = NODE_SIZE * (long)GetUInt(childrenMemOffset + 4);
                     pq.Enqueue(lChild, -margin); 
                     pq.Enqueue(rChild, margin);
                 }
             }
 
-            SimplePriorityQueue<int> sortedNNs = new SimplePriorityQueue<int>(reverseComparer);
+            //SimplePriorityQueue<int> sortedNNs = new SimplePriorityQueue<int>(); // reverseComparer
+            SimplePriorityQueue<int> sortedNNs = new SimplePriorityQueue<int>(reverseComparer); // reverseComparer
             //List<PQEntry> sortedNNs = new List<PQEntry>();
 
             foreach (int nn in nearestNeighbors) {
