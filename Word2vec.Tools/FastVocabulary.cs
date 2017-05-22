@@ -12,6 +12,8 @@ namespace Word2vec.Tools {
         public ANNIndex annoyIndex;
         public Vocabulary vocab;
 
+        public int limitTrees = -1; // -1 for off
+
         public override WordRepresentation[] Words { get { return vocab.Words; } }
 
         public override int VectorDimensionsCount {
@@ -31,7 +33,7 @@ namespace Word2vec.Tools {
             //TODO: Should use distances from annoyIndex instead of recalculating
             //TODO: doesn't remove nearthis from results
 
-            var finds = annoyIndex.getNearest(nearthis.NumericVector.ToArray(), maxCount);
+            var finds = annoyIndex.getNearest(nearthis.NumericVector.ToArray(), maxCount, limitTrees);
             return finds
                 .Select(f => vocab.Words[f])
                 .Select(wr => new WordDistance(wr, wr.GetCosineDistanceTo(nearthis))).ToArray();

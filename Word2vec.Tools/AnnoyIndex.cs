@@ -185,25 +185,26 @@ namespace Word2vec.Tools {
         //}
 
         //@Override
-        public int[] getNearest(float[] queryVector, int nResults) {
+        public int[] getNearest(float[] queryVector, int nResults, int limitTrees = -1) {
+            // limitTrees: if > 0 then only search that many trees instead of all of them
+
             var reverseComparer = Comparer<float>.Create((x,y) => y.CompareTo(x)); // bigger to top
 
             SimplePriorityQueue <long> pq = new SimplePriorityQueue<long>(reverseComparer);
             // PriorityQueue size: roots.Count() * FLOAT_SIZE);
             const float kMaxPriority = 1e30f;
+            IEnumerable<long> useRoots = roots;
+            if (limitTrees > 0 && limitTrees < roots.Count()) {
+                useRoots = roots.Take(limitTrees);
+            }
 
-            foreach (long r in roots) {
+            foreach (long r in useRoots) {
                 pq.Enqueue(r, kMaxPriority); // add(new PQEntry(kMaxPriority, r));
             }
 
             HashSet<long> nearestNeighbors = new HashSet<long>();
-            while (nearestNeighbors.Count() < roots.Count() * nResults && pq.Count != 0) {
-                //PQEntry top = pq.poll();
+            while (nearestNeighbors.Count() < useRoots.Count() * nResults && pq.Count != 0) {
                 long topNodeOffset = pq.Dequeue(); //  top; //.nodeOffset;
-                if (topNodeOffset < 0) {
-                    Console.WriteLine("bad offset:" + topNodeOffset);
-                    continue;
-                }
                 int nDescendants = GetInt(topNodeOffset);
                 float[] v = getNodeVector(topNodeOffset);
                 if (nDescendants == 1) {  // n_descendants
