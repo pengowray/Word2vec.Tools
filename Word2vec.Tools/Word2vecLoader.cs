@@ -42,7 +42,7 @@ namespace Word2vec.Tools
             }
         }
 
-        public static Vocabulary LoadGzip(string path, bool normalize = true, bool isNormalized = true)
+        public static Vocabulary LoadGzip(string path, bool normalize = false, bool isNormalized = true)
         {
             if (!path.ToLowerInvariant().EndsWith(".gz"))
                 return null; //TODO: throw error
@@ -80,7 +80,7 @@ namespace Word2vec.Tools
         /// </summary>
         /// <param name="path">Filename of file to load, including path</param>
         /// <returns></returns>
-        public static Vocabulary Load(string path, bool normalize = true, bool isNormalized = true)
+        public static Vocabulary Load(string path, bool normalize = false, bool isNormalized = true)
         {
             string fileLower = path.ToLowerInvariant();
             if (fileLower.EndsWith(".txt") || fileLower.EndsWith(".words"))
