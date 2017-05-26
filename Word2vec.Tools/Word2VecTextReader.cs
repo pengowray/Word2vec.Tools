@@ -1,4 +1,5 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Single;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -59,9 +60,11 @@ namespace Word2vec.Tools
                         throw new FormatException("word \"" + line.First() + "\" has wrong vector size of " + vecs.Length);
 
                     if (normalize && !isSourceNormalized) {
+                        var vector = vecs.Select(v => Single.Parse(v, enUsCulture)).ToArray();
+                        //vector: Vector<float>.Build.Dense(vector).Normalize(2)));
                         vectors.Add(new WordRepresentation(
-                           word: line.First(),
-                           vector: Vector<float>.Build.Dense(vecs.Select(v => Single.Parse(v, enUsCulture)).ToArray()).Normalize(2)));
+                           word: line.First(), vector: vector));
+
                     } else {
                         vectors.Add(new WordRepresentation(
                            word: line.First(),

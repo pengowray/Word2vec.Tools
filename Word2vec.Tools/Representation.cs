@@ -12,18 +12,18 @@ namespace Word2vec.Tools
     /// </summary>
     public class Representation
     {
-        public Representation(Vector<float> NumericVector) // todo: go back to using a float[]
+        public Representation(DenseVector NumericVector) // todo: go back to using a float[]
         {
             this.NumericVector = NumericVector;
             MetricLength = NumericVector.L2Norm(); // Euclidean norm
         }
         public Representation(float[] numericVector)
         {
-            this.NumericVector = Vector<float>.Build.Dense(numericVector);
+            this.NumericVector = new DenseVector(numericVector); //Vector<float>.Build.Dense(numericVector);
             MetricLength = NumericVector.L2Norm(); // Euclidean norm
         }
 
-        public readonly Vector<float> NumericVector;
+        public readonly DenseVector NumericVector;
         public readonly double MetricLength; // The square root of the sum of the squared values. (Euclidean norm)
 
         public WordDistance GetCosineDistanceToWord(WordRepresentation representation)
@@ -34,7 +34,8 @@ namespace Word2vec.Tools
         public double GetCosineDistanceTo(Representation representation)
         {
             //return Distance.Cosine(NumericVector, representation.NumericVector);
-            return Distance.Cosine(NumericVector.ToArray(), representation.NumericVector.ToArray());
+            //return Distance.Cosine(NumericVector.ToArray(), representation.NumericVector.ToArray());
+            return Distance.Cosine(NumericVector.Values, representation.NumericVector.Values);
         }
 
         // was: GetAngularCosineDistanceTo
@@ -72,7 +73,8 @@ namespace Word2vec.Tools
                 return this;
 
             var ans = NumericVector.Normalize(2);
-            return new Representation(ans);
+            //return new Representation(ans);
+            return new Representation(new DenseVector(ans.ToArray())); // argh
         }
         public bool IsNormal() {
             return Math.Abs(MetricLength - 1) < 0.0035; // accept even freebase_skipgram1000_en's normalization
@@ -94,10 +96,6 @@ namespace Word2vec.Tools
                .ToArray();
         }
 
-        /// <returns>Return the nearest cluster if it's known/meaningful.</returns>
-        internal virtual Cluster NearestCluster() {
-            return null;
-        }
 
     }
 }

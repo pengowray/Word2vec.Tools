@@ -249,7 +249,7 @@ namespace Word2vec.Tools {
                 sortedNNs.Enqueue(nn, priority);
             }
 
-            return sortedNNs.Take(nResults).ToArray(); // should do the job but don't trust it for now
+            return sortedNNs.Take(nResults).ToArray();
 
             /*
             // longer verison of above

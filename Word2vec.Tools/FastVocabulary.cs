@@ -33,7 +33,8 @@ namespace Word2vec.Tools {
             //TODO: Should use distances from annoyIndex instead of recalculating
             //TODO: doesn't remove nearthis from results
 
-            var finds = annoyIndex.getNearest(nearthis.NumericVector.ToArray(), maxCount, limitTrees);
+            //var finds = annoyIndex.getNearest(nearthis.NumericVector.ToArray(), maxCount, limitTrees);
+            var finds = annoyIndex.getNearest(nearthis.NumericVector.Values, maxCount, limitTrees);
             return finds
                 .Select(f => vocab.Words[f])
                 .Select(wr => new WordDistance(wr, wr.GetCosineDistanceTo(nearthis))).ToArray();

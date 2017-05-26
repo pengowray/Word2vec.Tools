@@ -1,4 +1,5 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Single;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -100,7 +101,8 @@ namespace Word2vec.Tools
                 Buffer.BlockCopy(vectorBytes, 0, vector, 0, vectorSizeInByte);
 
                 if (normalize && !isSourceNormalized) {
-                    var normVec = Vector<float>.Build.Dense(vector).Normalize(2);
+                    //var normVec = Vector<float>.Build.Dense(vector).Normalize(2);
+                    var normVec = new DenseVector(vector).Normalize(2).ToArray(); //TODO: ugh
                     return new WordRepresentation(word, normVec);
                 } else {
                     return new WordRepresentation(word, vector);
