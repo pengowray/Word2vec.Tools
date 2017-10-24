@@ -13,8 +13,13 @@ namespace Word2vec.Tools {
 
     // see also: https://github.com/spotify/annoy
     // specifically: https://github.com/spotify/annoy/blob/master/src/annoylib.h
-    // note: new AnnoyIndex<int32_t, float, Angular or Euclidean, Kiss64Random>(self->f); // int32_t is signed
+    // note: new AnnoyIndex<int32_t, float, [Angular or Euclidean], Kiss64Random>(self->f); // int32_t is signed
     // template<typename S, typename T, typename Distance, typename Random> class AnnoyIndex
+
+    // Major changes from spotify/annoy-java []:
+    // * supports index files > 2GB
+    // * supports search_k parameter on getNearest() -- A larger value will give more accurate results, but will take longer time to return.
+
 
     public enum IndexType {
         ANGULAR, EUCLIDEAN, NONE
@@ -184,9 +189,34 @@ namespace Word2vec.Tools {
         //    return null; //TODO
         //}
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="queryVector"></param>
+        /// <param name="nResults"></param>
+        /// <param name="search_f">1.0f for default search_k. 2.0f for double the default search_k. 0.5f for half.</param>
+        /// <returns></returns>
+        public int[] getNearest(float[] queryVector, int nResults, float search_f) {
+            int n_trees = roots.Count();
+            int search_k = (int) Math.Ceiling(n_trees * nResults * search_f);
+
+            return getNearest(queryVector, nResults, search_k);
+        }
+
+        public int[] getNearestButLimitTrees(float[] queryVector, int nResults, int limitTrees = -1) {
+            return getNearest(queryVector, nResults, limitTrees, -1);
+        }
+
         //@Override
-        public int[] getNearest(float[] queryVector, int nResults, int limitTrees = -1) {
-            // limitTrees: if > 0 then only search that many trees instead of all of them
+        public int[] getNearest(float[] queryVector, int nResults, int limitTrees = -1, int search_k = -1) {
+            // limitTrees (aka n_trees in spotify/annoy): if > 0 then only search that many trees instead of all of them.
+            // This variable is largely redundant now that search_k has been implemented.
+
+            // Note: in the original spotify/annoy implementation, n_trees was only tunable when building the index and
+            // instead "search_k" is provided at runtime to affect search performance. In it, "search_k" defaults to 
+            // roots.Count() * nResults, which is hardcoded in annoy-java which this is based on.
+            // 
+            // For more about search_k, which doesn't seem to be implemented here, see: https://github.com/spotify/annoy/blob/master/README.rst
 
             var reverseComparer = Comparer<float>.Create((x,y) => y.CompareTo(x)); // bigger to top
 
@@ -198,12 +228,16 @@ namespace Word2vec.Tools {
                 useRoots = roots.Take(limitTrees);
             }
 
+            if (search_k <= 0) {
+                search_k = useRoots.Count() * nResults;
+            }
+
             foreach (long r in useRoots) {
                 pq.Enqueue(r, kMaxPriority); // add(new PQEntry(kMaxPriority, r));
             }
 
             HashSet<long> nearestNeighbors = new HashSet<long>();
-            while (nearestNeighbors.Count() < useRoots.Count() * nResults && pq.Count != 0) {
+            while (nearestNeighbors.Count() < search_k && pq.Count != 0) {
                 long topNodeOffset = pq.Dequeue(); //  top; //.nodeOffset;
                 int nDescendants = GetInt(topNodeOffset);
                 float[] v = getNodeVector(topNodeOffset);
